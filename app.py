@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template,redirect,flash
 from flask_debugtoolbar import DebugToolbarExtension
+from flask import session
 
 from surveys import satisfaction_survey 
 
@@ -23,10 +24,11 @@ def start_survey():
 @app.route('/question/<int:question_num>')
 def  ask (question_num):
     """ Asks survey question num"""
-
     title =  satisfaction_survey.title
     question = satisfaction_survey.questions[question_num]
     size = len(satisfaction_survey.questions)
+
+    responses = session.get('responses')
 
     if (question_num >= size) and (len(responses) == size) :
         return redirect ("/thanks")
@@ -41,8 +43,9 @@ def  ask (question_num):
 def survey_data():
     value = request.form['ans']
     responses.append(value)
+    session['responses'] = responses
 
-    if len(responses) == len(satisfaction_survey.questions):
+    if len(session.get('responses')) == len(satisfaction_survey.questions):
         return redirect ("/thanks")
     else:
         return redirect(f'/question/{len(responses)}')
@@ -50,5 +53,12 @@ def survey_data():
 @app.route('/thanks')
 def say_thanks():
     question = satisfaction_survey.questions
-    return render_template('thanks.html', questions = question,responses = responses)
     
+    return render_template('thanks.html',questions = question)
+
+@app.route('/reset_session', methods = ['POST'])
+def reset_session():
+    """ resets responses list to empty."""
+    
+    session['responses'] = responses
+    return redirect ('/question/0')
